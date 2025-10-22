@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build output
+build/
+dist/
+.tmp/
+.temp/
+
+# Coverage
+acoverage/
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+
+# Local database/data dumps
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+
+# PM2
+.pm2/
