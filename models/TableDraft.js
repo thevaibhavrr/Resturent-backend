@@ -9,7 +9,11 @@ const TableDraftSchema = new mongoose.Schema({
     itemId: { type: String, required: true },
     name: { type: String, required: true },
     price: { type: Number, required: true },
-    quantity: { type: Number, required: true }
+    quantity: { type: Number, required: true },
+    note: { type: String, default: '' },
+    spiceLevel: { type: Number, default: 0 },
+    spicePercent: { type: Number, default: 50 },
+    isJain: { type: Boolean, default: false }
   }],
   subtotal: { type: Number, default: 0 },
   tax: { type: Number, default: 0 },
