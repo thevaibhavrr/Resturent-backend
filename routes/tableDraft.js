@@ -7,12 +7,14 @@ const {
   deleteTableDraft,
   clearTableDraft
 } = require('../controllers/tableDraftController');
+const verifyToken = require('../middleware/verifyToken');
+const checkSubscription = require('../middleware/checkSubscription');
 
-// Table draft routes
-router.post('/save', saveTableDraft);
-router.get('/get', getTableDraft);
-router.get('/all', getAllTableDrafts);
-router.delete('/delete', deleteTableDraft);
-router.post('/clear', clearTableDraft);
+// Table draft routes - Protected by subscription check
+router.post('/save', verifyToken, checkSubscription, saveTableDraft);
+router.get('/get', getTableDraft); // Allow viewing drafts even if expired
+router.get('/all', getAllTableDrafts); // Allow viewing drafts even if expired
+router.delete('/delete', deleteTableDraft); // Allow deleting drafts even if expired
+router.post('/clear', clearTableDraft); // Allow clearing drafts even if expired
 
 module.exports = router;

@@ -8,7 +8,7 @@ const seed = async () => {
 
   const items = [
     { name: 'divya palce', adminUsername: 'Divyapalce', adminPassword: '1234' },
-    { name: 'Iifa', adminUsername: 'lifa', adminPassword: '1234' },
+    { name: 'iefa', adminUsername: 'iefa', adminPassword: '1234' },
   ];
 
   for (const it of items) {
