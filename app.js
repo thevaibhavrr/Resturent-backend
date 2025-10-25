@@ -20,6 +20,7 @@ app.use('/api/table', require('./routes/table'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/table-draft', require('./routes/tableDraft'));
 app.use('/api/plan', require('./routes/plan'));
+app.use('/api/staff', require('./routes/staff'));
 app.use('/api/superadmin', require('./routes/superAdmin'));
 
 app.get('/api/ping', (req, res) => res.json({ ok: true }));
