@@ -1,4 +1,5 @@
 const MenuCategory = require('../models/MenuCategory');
+const mongoose = require('mongoose');
 
 // Create new category
 exports.createCategory = async (req, res) => {
@@ -43,13 +44,44 @@ exports.getCategories = async (req, res) => {
 exports.updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
+    const { name, description, restaurantId } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Category name is required' });
+    }
+    
+    // Validate ObjectId format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ error: 'Invalid category ID format' });
+    }
+    
+    // Build update object
+    const updateData = {
+      name: name.trim(),
+      description: description || ''
+    };
+    
+    // Include restaurantId if provided (for validation)
+    if (restaurantId) {
+      updateData.restaurantId = restaurantId;
+    }
+    
+    // Convert string ID to ObjectId
+    const objectId = new mongoose.Types.ObjectId(id);
+    
     const category = await MenuCategory.findByIdAndUpdate(
-      id, 
-      req.body, 
-      { new: true }
+      objectId, 
+      updateData, 
+      { new: true, runValidators: true }
     );
+    
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    
     res.json(category);
   } catch (err) {
+    console.error('Error updating category:', err);
     res.status(400).json({ error: err.message });
   }
 };

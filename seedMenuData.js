@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const MenuItem = require('./models/MenuItem');
-const Category = require('./models/Category');
+const MenuCategory = require('./models/MenuCategory');
 const Restaurant = require('./models/Restaurant');
 require('dotenv').config();
 
@@ -55,13 +55,13 @@ async function seedMenuData() {
     console.log('Seeding data for restaurant:', restaurant.name);
 
     // Clear existing data
-    await Category.deleteMany({ restaurantId: restaurant._id });
+    await MenuCategory.deleteMany({ restaurantId: restaurant._id });
     await MenuItem.deleteMany({ restaurantId: restaurant._id });
 
     // Create categories
     const createdCategories = [];
     for (const categoryData of sampleCategories) {
-      const category = new Category({
+      const category = new MenuCategory({
         ...categoryData,
         restaurantId: restaurant._id
       });
