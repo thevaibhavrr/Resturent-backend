@@ -5,9 +5,13 @@ const MenuItemSchema = new mongoose.Schema({
   description: { type: String },
   price: { type: Number, required: true },
   image: { type: String },
-  category: { type: String, required: true },
+  category: { type: String }, // Legacy field, kept for backward compatibility
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuCategory' }, // New field for category reference
   spiceLevel: { type: Number, min: 1, max: 5, default: 1 },
   isAvailable: { type: Boolean, default: true },
+  isVeg: { type: Boolean, default: true },
+  preparationTime: { type: Number, default: 15 },
+  displayOrder: { type: Number, default: 0 },
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant', required: true },
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
 }, { timestamps: true });
