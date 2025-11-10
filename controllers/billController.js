@@ -56,7 +56,8 @@ exports.createBill = async (req, res) => {
         note: item.note || '',
         spiceLevel: item.spiceLevel || 0,
         spicePercent: item.spicePercent || 0,
-        isJain: item.isJain || false
+        isJain: item.isJain || false,
+        discountAmount: item.discountAmount || 0 // Item-level discount in ₹
       })),
       subtotal: subtotal || 0,
       additionalCharges: additionalCharges || [],

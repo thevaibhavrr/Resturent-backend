@@ -14,7 +14,8 @@ const BillSchema = new mongoose.Schema({
     note: String,
     spiceLevel: Number,
     spicePercent: Number,
-    isJain: Boolean
+    isJain: Boolean,
+    discountAmount: { type: Number, default: 0 } // Discount in ₹ for this item
   }],
   subtotal: { type: Number, required: true },
   additionalCharges: [{
