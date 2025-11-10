@@ -12,24 +12,29 @@ function parseSpiceLevel(spicyLevelText) {
   
   const text = spicyLevelText.toLowerCase();
   
+  // Extract percentage from text (e.g., "60%" or "(60%)")
+  const percentMatch = text.match(/(\d+)%/);
+  const percent = percentMatch ? parseInt(percentMatch[1]) : 0;
+  
   // None (0%) -> 1
-  if (text.includes('none') || text.includes('0%')) {
+  if (text.includes('none') || percent === 0) {
     return 1;
   }
-  // Very Spicy (95%) -> 5
-  if (text.includes('very spicy') || text.includes('95%')) {
+  
+  // Very Spicy (90% or 95%) -> 5
+  if (percent >= 90 || text.includes('very spicy')) {
     return 5;
   }
   // Spicy (80%) -> 4
-  if (text.includes('spicy') && text.includes('80%')) {
+  if (percent >= 80 || (text.includes('spicy') && percent >= 70)) {
     return 4;
   }
-  // Medium (50% or 60%) -> 3
-  if (text.includes('medium') || text.includes('50%') || text.includes('60%')) {
+  // Medium (50% to 70%) -> 3
+  if (percent >= 50 && percent < 80 || text.includes('medium')) {
     return 3;
   }
-  // Mild (30% or 40%) -> 2
-  if (text.includes('mild') || text.includes('30%') || text.includes('40%')) {
+  // Mild (30% to 50%) -> 2
+  if (percent >= 30 && percent < 50 || text.includes('mild')) {
     return 2;
   }
   
@@ -145,6 +150,90 @@ const sabziMenuItems = [
     "name": "सेव पनीर मसाला (Sev Paneer Masala)",
     "price": 140,
     "spicy_level": "🌶️🌶️ Spicy (80%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "बेसन गट्टा मसाला (Besan Gatta Masala)",
+    "price": 110,
+    "spicy_level": "🌶️🌶️ Medium (60%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "मिक्स वेज (Mix Veg)",
+    "price": 120,
+    "spicy_level": "🌶️ Mild (30%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "मिक्स वेज पनीर (Mix Veg Paneer)",
+    "price": 140,
+    "spicy_level": "🌶️🌶️ Medium (60%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "आलू 2 प्याज़ (Aloo Do Pyaz)",
+    "price": 110,
+    "spicy_level": "🌶️ Mild (30%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "वेज कोल्हापुरी (Veg Kolhapuri)",
+    "price": 120,
+    "spicy_level": "🌶️🌶️🌶️ Spicy (90%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "स्टफ टमाटर (Stuffed Tamatar)",
+    "price": 120,
+    "spicy_level": "🌶️ Mild (30%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "वेज हांडी (Veg Handi)",
+    "price": 120,
+    "spicy_level": "🌶️🌶️ Medium (60%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "वेज हंगामा (Veg Hungama)",
+    "price": 120,
+    "spicy_level": "🌶️🌶️ Medium (60%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "वेज हैदराबादी (Veg Hyderabadi)",
+    "price": 130,
+    "spicy_level": "🌶️🌶️🌶️ Spicy (90%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "दम आलू (Dum Aloo)",
+    "price": 130,
+    "spicy_level": "🌶️ Mild (30%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "वेज जयपुरी (Veg Jaipuri)",
+    "price": 140,
+    "spicy_level": "🌶️🌶️ Medium (60%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "टमाटर चटनी स्पेशल (Tamatar Chutney Special)",
+    "price": 110,
+    "spicy_level": "🌶️🌶️ Medium (60%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "आलू छोले (Aloo Chole)",
+    "price": 110,
+    "spicy_level": "🌶️🌶️ Medium (60%)",
+    "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
+  },
+  {
+    "name": "आलू गोभी टमाटर (Aloo Gobi Tamatar)",
+    "price": 120,
+    "spicy_level": "🌶️ Mild (30%)",
     "image": "https://vegecravings.com/wp-content/uploads/2020/02/Arbi-Ki-Sabzi-Recipe-Step-By-Step-Instructions-scaled.jpg"
   }
 ];
