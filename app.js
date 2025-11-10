@@ -27,6 +27,7 @@ app.use('/api/plan', require('./routes/plan'));
 app.use('/api/staff', require('./routes/staff'));
 app.use('/api/superadmin', require('./routes/superAdmin'));
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/settings', require('./routes/settings'));
 
 app.get('/api/ping', (req, res) => res.json({ ok: true }));
 

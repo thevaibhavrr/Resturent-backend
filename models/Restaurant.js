@@ -21,7 +21,15 @@ const RestaurantSchema = new mongoose.Schema({
       type: Date 
     }
     // Note: isActive and daysRemaining are now calculated dynamically via virtuals
-  }
+  },
+  // Restaurant settings
+  address: { type: String, default: '' },
+  phone: { type: String, default: '' },
+  email: { type: String, default: '' },
+  website: { type: String, default: '' },
+  gstin: { type: String, default: '' },
+  logo: { type: String, default: '' },
+  description: { type: String, default: '' }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },
