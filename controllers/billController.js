@@ -77,10 +77,34 @@ exports.createBill = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating bill:', error);
+    
+    // Handle duplicate bill number
     if (error.code === 11000) {
       return res.status(400).json({ error: 'Bill number already exists' });
     }
-    res.status(500).json({ error: 'Failed to create bill' });
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map((err: any) => err.message).join(', ');
+      return res.status(400).json({ error: `Validation error: ${validationErrors}` });
+    }
+    
+    // Handle database connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
+      console.error('Database connection error:', error);
+      return res.status(503).json({ error: 'Database connection failed. Please try again later.' });
+    }
+    
+    // Generic error
+    console.error('Full error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ 
+      error: error.message || 'Failed to create bill',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
