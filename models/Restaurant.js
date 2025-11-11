@@ -29,6 +29,7 @@ const RestaurantSchema = new mongoose.Schema({
   website: { type: String, default: '' },
   gstin: { type: String, default: '' },
   logo: { type: String, default: '' },
+  qrCode: { type: String, default: '' }, // QR code image (base64 or URL)
   description: { type: String, default: '' }
 }, { 
   timestamps: true,
