@@ -85,7 +85,7 @@ exports.createBill = async (req, res) => {
     
     // Handle validation errors
     if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map((err: any) => err.message).join(', ');
+      const validationErrors = Object.values(error.errors).map((err) => err.message).join(', ');
       return res.status(400).json({ error: `Validation error: ${validationErrors}` });
     }
     
