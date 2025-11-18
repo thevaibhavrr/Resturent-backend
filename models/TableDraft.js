@@ -13,7 +13,17 @@ const TableDraftSchema = new mongoose.Schema({
     note: { type: String, default: '' },
     spiceLevel: { type: Number, default: 0 },
     spicePercent: { type: Number, default: 50 },
-    isJain: { type: Boolean, default: false }
+    isJain: { type: Boolean, default: false },
+    addedBy: {
+      userId: { type: String, required: true },
+      userName: { type: String, required: true }
+    },
+    lastUpdatedBy: {
+      userId: { type: String, required: true },
+      userName: { type: String, required: true },
+      timestamp: { type: Date, default: Date.now }
+    },
+    updatedBy: { type: String } // For backward compatibility
   }],
   subtotal: { type: Number, default: 0 },
   tax: { type: Number, default: 0 },

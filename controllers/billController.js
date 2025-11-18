@@ -215,7 +215,7 @@ exports.getBillStats = async (req, res) => {
       if (endDate) matchQuery.createdAt.$lte = new Date(endDate);
     }
 
-    // Get total revenue and order count
+    // Get total revenue, order count, and total discount
     const stats = await Bill.aggregate([
       { $match: matchQuery },
       {
@@ -224,7 +224,8 @@ exports.getBillStats = async (req, res) => {
           totalRevenue: { $sum: '$grandTotal' },
           totalOrders: { $sum: 1 },
           averageOrderValue: { $avg: '$grandTotal' },
-          totalItems: { $sum: { $size: '$items' } }
+          totalItems: { $sum: { $size: '$items' } },
+          totalDiscount: { $sum: '$discountAmount' }
         }
       }
     ]);
@@ -233,7 +234,8 @@ exports.getBillStats = async (req, res) => {
       totalRevenue: 0,
       totalOrders: 0,
       averageOrderValue: 0,
-      totalItems: 0
+      totalItems: 0,
+      totalDiscount: 0
     };
 
     res.json(result);

@@ -3,26 +3,49 @@ const TableDraft = require('../models/TableDraft');
 // Save or update table draft
 const saveTableDraft = async (req, res) => {
   try {
-    const { tableId, tableName, restaurantId, persons, cartItems, updatedBy } = req.body;
+    const { tableId, tableName, restaurantId, persons, cartItems, updatedBy, userId } = req.body;
     
-    if (!tableId || !tableName || !restaurantId || !updatedBy) {
+    if (!tableId || !tableName || !restaurantId || !updatedBy || !userId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Process cart items to ensure they have the required staff information
+    const processedCartItems = cartItems.map(item => {
+      // For new items being added
+      if (!item.addedBy) {
+        item.addedBy = {
+          userId: userId,
+          userName: updatedBy
+        };
+      }
+      
+      // Always update lastUpdatedBy with current user
+      item.lastUpdatedBy = {
+        userId: userId,
+        userName: updatedBy,
+        timestamp: new Date()
+      };
+      
+      // For backward compatibility
+      item.updatedBy = updatedBy;
+      
+      return item;
+    });
+
     // Calculate totals
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subtotal = processedCartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const tax = subtotal * 0.1; // 10% tax
     const total = subtotal + tax;
 
     // Determine status based on cart items
-    const status = cartItems.length > 0 ? 'occupied' : 'draft';
+    const status = processedCartItems.length > 0 ? 'occupied' : 'draft';
 
     const draftData = {
       tableId,
       tableName,
       restaurantId,
       persons: persons || 1,
-      cartItems,
+      cartItems: processedCartItems,
       subtotal,
       tax,
       total,
