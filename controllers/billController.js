@@ -278,6 +278,103 @@ exports.getBillById = async (req, res) => {
 };
 
 /**
+ * Update a bill
+ * @description Updates an existing bill record in the database
+ */
+exports.updateBill = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      tableId, 
+      tableName, 
+      persons, 
+      items, 
+      subtotal, 
+      additionalCharges, 
+      discountAmount, 
+      grandTotal 
+    } = req.body;
+
+    let restaurantId = req.user?.restaurantId;
+
+    if (restaurantId && typeof restaurantId === 'string') {
+      try {
+        restaurantId = new mongoose.Types.ObjectId(restaurantId);
+      } catch (error) {
+        return res.status(400).json({ error: 'Invalid restaurant ID format' });
+      }
+    }
+
+    if (!restaurantId) {
+      return res.status(400).json({ error: 'Restaurant ID is required' });
+    }
+
+    // Find the bill first to ensure it exists and belongs to the restaurant
+    const existingBill = await Bill.findOne({ 
+      _id: id,
+      restaurantId 
+    });
+
+    if (!existingBill) {
+      return res.status(404).json({ error: 'Bill not found' });
+    }
+
+    // Update bill fields
+    if (tableId !== undefined) existingBill.tableId = tableId;
+    if (tableName !== undefined) existingBill.tableName = tableName;
+    if (persons !== undefined) existingBill.persons = persons;
+    if (items !== undefined && Array.isArray(items)) {
+      existingBill.items = items.map(item => ({
+        itemId: item.id || item.itemId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        note: item.note || '',
+        spiceLevel: item.spiceLevel || 0,
+        spicePercent: item.spicePercent || 0,
+        isJain: item.isJain || false,
+        discountAmount: item.discountAmount || 0
+      }));
+    }
+    if (subtotal !== undefined) existingBill.subtotal = subtotal;
+    if (additionalCharges !== undefined) existingBill.additionalCharges = additionalCharges;
+    if (discountAmount !== undefined) existingBill.discountAmount = discountAmount;
+    if (grandTotal !== undefined) existingBill.grandTotal = grandTotal;
+
+    // Update the updatedAt timestamp
+    existingBill.updatedAt = new Date();
+
+    await existingBill.save();
+
+    console.log('Bill updated successfully:', existingBill.billNumber, 'for restaurant:', restaurantId);
+
+    res.json({
+      message: 'Bill updated successfully',
+      bill: existingBill
+    });
+  } catch (error) {
+    console.error('Error updating bill:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.values(error.errors).map((err) => err.message).join(', ');
+      return res.status(400).json({ error: `Validation error: ${validationErrors}` });
+    }
+    
+    // Handle database connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongoServerSelectionError') {
+      console.error('Database connection error:', error);
+      return res.status(503).json({ error: 'Database connection failed. Please try again later.' });
+    }
+    
+    res.status(500).json({ 
+      error: error.message || 'Failed to update bill',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
  * Delete a bill
  */
 exports.deleteBill = async (req, res) => {

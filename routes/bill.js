@@ -15,6 +15,9 @@ router.get('/stats', verifyToken, billController.getBillStats);
 // Get bill by ID
 router.get('/:id', verifyToken, billController.getBillById);
 
+// Update a bill
+router.put('/:id', verifyToken, billController.updateBill);
+
 // Delete a bill
 router.delete('/:id', verifyToken, billController.deleteBill);
 

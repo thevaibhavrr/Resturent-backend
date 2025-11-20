@@ -40,6 +40,7 @@ app.use('/api/superadmin', require('./routes/superAdmin'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/bills', require('./routes/bill'));
+app.use('/api/expenses', require('./routes/expense'));
 
 // Health check endpoint
 app.get('/api/ping', (req, res) => {
