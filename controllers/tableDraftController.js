@@ -34,8 +34,8 @@ const saveTableDraft = async (req, res) => {
 
     // Calculate totals
     const subtotal = processedCartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const tax = subtotal * 0.1; // 10% tax
-    const total = subtotal + tax;
+    const tax = 0; // No tax
+    const total = subtotal;
 
     // Determine status based on cart items
     const status = processedCartItems.length > 0 ? 'occupied' : 'draft';
@@ -141,7 +141,7 @@ const clearTableDraft = async (req, res) => {
       persons: 1,
       cartItems: [],
       subtotal: 0,
-      tax: 0,
+      tax: 0, // No tax
       total: 0,
       status: 'draft',
       lastUpdated: new Date(),
