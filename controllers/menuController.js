@@ -1,21 +1,21 @@
 const MenuItem = require('../models/MenuItem');
-const Category = require('../models/Category');
+const MenuCategory = require('../models/MenuCategory');
 
 // Get all menu items for a restaurant
 const getMenuItems = async (req, res) => {
   try {
     const { restaurantId, category } = req.query;
-    
+
     if (!restaurantId) {
       return res.status(400).json({ error: 'Restaurant ID is required' });
     }
 
     let query = { restaurantId, status: 'active' };
     if (category && category !== 'all') {
-      query.category = category;
+      query.categoryId = category;
     }
 
-    const menuItems = await MenuItem.find(query).sort({ category: 1, name: 1 });
+    const menuItems = await MenuItem.find(query).sort({ categoryId: 1, displayOrder: 1 }).populate('categoryId');
     res.json(menuItems);
   } catch (error) {
     console.error('Error fetching menu items:', error);
@@ -43,19 +43,50 @@ const getCategories = async (req, res) => {
 // Create a new menu item
 const createMenuItem = async (req, res) => {
   try {
-    const { name, description, price, image, category, spiceLevel, restaurantId } = req.body;
-    
+    const { name, description, price, image, category, spiceLevel, restaurantId, isVeg, preparationTime } = req.body;
+
+    // Find category by name to get categoryId
+    let categoryId = null;
+    if (category) {
+      const categoryDoc = await MenuCategory.findOne({
+        name: category,
+        restaurantId,
+        status: 'active'
+      });
+      if (categoryDoc) {
+        categoryId = categoryDoc._id;
+      }
+    }
+
+    // Find max display order within category and add 1
+    const maxOrder = await MenuItem.findOne({
+      categoryId,
+      restaurantId
+    })
+    .sort('-displayOrder')
+    .select('displayOrder');
+
+    const displayOrder = maxOrder ? maxOrder.displayOrder + 1 : 0;
+
     const menuItem = new MenuItem({
       name,
       description,
       price,
       image,
-      category,
-      spiceLevel: spiceLevel || 1,
-      restaurantId
+      category, // Keep legacy field for backward compatibility
+      categoryId, // Set the proper reference
+      spiceLevel: Math.min(5, Math.max(1, spiceLevel || 1)), // Clamp between 1-5
+      restaurantId,
+      isVeg: isVeg !== undefined ? isVeg : true,
+      preparationTime: preparationTime || 15,
+      displayOrder
     });
 
     await menuItem.save();
+
+    // Populate category details for response
+    await menuItem.populate('categoryId');
+
     res.status(201).json(menuItem);
   } catch (error) {
     console.error('Error creating menu item:', error);
