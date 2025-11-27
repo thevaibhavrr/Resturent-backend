@@ -1,5 +1,22 @@
 const Staff = require('../models/Staff');
 
+// Check if username is available
+exports.checkUsername = async (req, res) => {
+    try {
+        const { username, excludeId } = req.query;
+        const query = { username: new RegExp(`^${username}$`, 'i') };
+        
+        if (excludeId) {
+            query._id = { $ne: excludeId };
+        }
+        
+        const existingUser = await Staff.findOne(query);
+        res.json({ available: !existingUser });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Get all staff
 exports.getAllStaff = async (req, res) => {
     try {
