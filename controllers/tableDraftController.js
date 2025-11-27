@@ -2,6 +2,7 @@ const TableDraft = require('../models/TableDraft');
 
 // Save or update table draft
 const saveTableDraft = async (req, res) => {
+  const startTime = Date.now();
   try {
     const { tableId, tableName, restaurantId, persons, cartItems, updatedBy, userId } = req.body;
     
@@ -54,23 +55,23 @@ const saveTableDraft = async (req, res) => {
       updatedBy
     };
 
-    // Find existing draft or create new one
-    const existingDraft = await TableDraft.findOne({ tableId, restaurantId });
-    
-    if (existingDraft) {
-      const updatedDraft = await TableDraft.findByIdAndUpdate(
-        existingDraft._id,
-        draftData,
-        { new: true }
-      );
-      res.json(updatedDraft);
-    } else {
-      const newDraft = new TableDraft(draftData);
-      await newDraft.save();
-      res.json(newDraft);
-    }
+    // Use upsert for atomic operation - more efficient than separate find and update/insert
+    const draft = await TableDraft.findOneAndUpdate(
+      { tableId, restaurantId }, // Filter
+      draftData, // Update data
+      {
+        new: true, // Return updated document
+        upsert: true, // Create if doesn't exist
+        runValidators: true // Run schema validators
+      }
+    );
+
+    const duration = Date.now() - startTime;
+    console.log(`✅ Table draft saved for table ${tableId} in ${duration}ms`);
+    res.json(draft);
   } catch (error) {
-    console.error('Error saving table draft:', error);
+    const duration = Date.now() - startTime;
+    console.error(`❌ Error saving table draft for table ${req.body?.tableId || 'unknown'} in ${duration}ms:`, error);
     res.status(500).json({ error: 'Failed to save table draft' });
   }
 };
@@ -148,20 +149,18 @@ const clearTableDraft = async (req, res) => {
       updatedBy
     };
 
-    const existingDraft = await TableDraft.findOne({ tableId, restaurantId });
-    
-    if (existingDraft) {
-      const updatedDraft = await TableDraft.findByIdAndUpdate(
-        existingDraft._id,
-        draftData,
-        { new: true }
-      );
-      res.json(updatedDraft);
-    } else {
-      const newDraft = new TableDraft(draftData);
-      await newDraft.save();
-      res.json(newDraft);
-    }
+    // Use upsert for atomic operation
+    const draft = await TableDraft.findOneAndUpdate(
+      { tableId, restaurantId }, // Filter
+      draftData, // Update data
+      {
+        new: true, // Return updated document
+        upsert: true, // Create if doesn't exist
+        runValidators: true // Run schema validators
+      }
+    );
+
+    res.json(draft);
   } catch (error) {
     console.error('Error clearing table draft:', error);
     res.status(500).json({ error: 'Failed to clear table draft' });

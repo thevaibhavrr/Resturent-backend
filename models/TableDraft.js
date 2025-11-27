@@ -33,4 +33,8 @@ const TableDraftSchema = new mongoose.Schema({
   updatedBy: { type: String, required: true } // username of who last updated
 }, { timestamps: true });
 
+// Create compound index for faster queries
+TableDraftSchema.index({ tableId: 1, restaurantId: 1 }, { unique: false });
+TableDraftSchema.index({ restaurantId: 1, lastUpdated: -1 }, { unique: false });
+
 module.exports = mongoose.model('TableDraft', TableDraftSchema);
