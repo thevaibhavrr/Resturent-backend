@@ -70,7 +70,8 @@ exports.createItem = async (req, res) => {
     const { 
       name, 
       description, 
-      price, 
+      price,
+      cost, 
       categoryId, 
       restaurantId,
       image,
@@ -98,6 +99,7 @@ exports.createItem = async (req, res) => {
     const item = await MenuItem.create({ 
       name,
       description,
+      cost: parseFloat(cost) || 0,
       price,
       categoryId,
       restaurantId,

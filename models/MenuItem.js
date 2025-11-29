@@ -4,6 +4,7 @@ const MenuItemSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String },
   price: { type: Number, required: true },
+  cost: { type: Number, required: true },
   image: { type: String },
   category: { type: String }, // Legacy field, kept for backward compatibility
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuCategory' }, // New field for category reference
