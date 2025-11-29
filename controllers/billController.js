@@ -171,6 +171,7 @@ exports.getBills = async (req, res) => {
         // Calculate cost and net profit for the bill
         let totalCost = 0;
         let itemRevenue = 0;
+        let totalDiscount = 0;
 
         for (const item of billObj.items) {
           try {
@@ -191,14 +192,21 @@ exports.getBills = async (req, res) => {
 
             // Item revenue (excluding additional charges)
             itemRevenue += (item.price || 0) * quantity;
+
+            // Include item-level discounts
+            totalDiscount += (item.discountAmount || 0) * quantity;
           } catch (error) {
             console.error('Error fetching cost for item:', item.itemId, error);
             item.cost = 0;
           }
         }
 
-        // Net profit is item revenue minus cost (excluding additional charges)
-        billObj.netProfit = itemRevenue - totalCost;
+        // Add bill-level discount
+        totalDiscount += billObj.discountAmount || 0;
+
+        // Net profit = (item revenue - discounts) - cost
+        const effectiveRevenue = itemRevenue - totalDiscount;
+        billObj.netProfit = effectiveRevenue - totalCost;
 
         return billObj;
       })
@@ -343,6 +351,7 @@ exports.getNetProfitStats = async (req, res) => {
       let billCost = 0;
       let billRevenue = 0;
       let billItems = 0;
+      let totalDiscount = 0;
 
       // Calculate cost and revenue for each item in the bill
       for (const item of bill.items) {
@@ -360,9 +369,17 @@ exports.getNetProfitStats = async (req, res) => {
         // Revenue is only from item prices (excluding additional charges)
         billRevenue += (item.price || 0) * quantity;
         billCost += cost * quantity;
+
+        // Include item-level discounts
+        totalDiscount += (item.discountAmount || 0) * quantity;
       }
 
-      const billNetProfit = billRevenue - billCost;
+      // Add bill-level discount
+      totalDiscount += bill.discountAmount || 0;
+
+      // Net profit = (item revenue - discounts) - cost
+      const effectiveRevenue = billRevenue - totalDiscount;
+      const billNetProfit = effectiveRevenue - billCost;
 
       totalRevenue += billRevenue;
       totalCost += billCost;
