@@ -1,4 +1,5 @@
 const Bill = require('../models/Bill');
+const MenuItem = require('../models/MenuItem');
 const mongoose = require('mongoose');
 
 /**
@@ -162,12 +163,53 @@ exports.getBills = async (req, res) => {
       .limit(parseInt(limit))
       .skip(parseInt(skip));
 
+    // Calculate cost and net profit information for each bill's items
+    const billsWithCosts = await Promise.all(
+      bills.map(async (bill) => {
+        const billObj = bill.toObject();
+
+        // Calculate cost and net profit for the bill
+        let totalCost = 0;
+        let itemRevenue = 0;
+
+        for (const item of billObj.items) {
+          try {
+            // Find the menu item to get cost
+            const menuItem = await MenuItem.findOne({
+              _id: item.itemId,
+              restaurantId: restaurantId
+            });
+
+            const quantity = item.quantity || 1;
+
+            if (menuItem && menuItem.cost) {
+              item.cost = menuItem.cost;
+              totalCost += menuItem.cost * quantity;
+            } else {
+              item.cost = 0; // Default to 0 if cost not found
+            }
+
+            // Item revenue (excluding additional charges)
+            itemRevenue += (item.price || 0) * quantity;
+          } catch (error) {
+            console.error('Error fetching cost for item:', item.itemId, error);
+            item.cost = 0;
+          }
+        }
+
+        // Net profit is item revenue minus cost (excluding additional charges)
+        billObj.netProfit = itemRevenue - totalCost;
+
+        return billObj;
+      })
+    );
+
     const total = await Bill.countDocuments(query);
 
     console.log(`Found ${bills.length} bills out of ${total} total for restaurantId:`, restaurantId);
 
     res.json({
-      bills,
+      bills: billsWithCosts,
       total,
       limit: parseInt(limit),
       skip: parseInt(skip)
@@ -185,7 +227,7 @@ exports.getBills = async (req, res) => {
 exports.getBillStats = async (req, res) => {
   try {
     let restaurantId = req.user?.restaurantId || req.params.restaurantId;
-    
+
     if (!restaurantId) {
       return res.status(400).json({ error: 'Restaurant ID is required' });
     }
@@ -204,7 +246,7 @@ exports.getBillStats = async (req, res) => {
 
     const { startDate, endDate } = req.query;
 
-    const matchQuery = { 
+    const matchQuery = {
       restaurantId,
       status: 'completed'
     };
@@ -242,6 +284,110 @@ exports.getBillStats = async (req, res) => {
   } catch (error) {
     console.error('Error fetching bill stats:', error);
     res.status(500).json({ error: 'Failed to fetch bill statistics' });
+  }
+};
+
+/**
+ * Get net profit statistics for a restaurant
+ * @description Returns net profit calculation using (price - cost) for all sold items
+ */
+exports.getNetProfitStats = async (req, res) => {
+  try {
+    let restaurantId = req.user?.restaurantId || req.params.restaurantId;
+
+    if (!restaurantId) {
+      return res.status(400).json({ error: 'Restaurant ID is required' });
+    }
+
+    // Convert restaurantId to ObjectId if it's a string
+    if (typeof restaurantId === 'string') {
+      try {
+        restaurantId = new mongoose.Types.ObjectId(restaurantId);
+      } catch (error) {
+        console.error('Error converting restaurantId to ObjectId in getNetProfitStats:', error, 'restaurantId:', restaurantId);
+        return res.status(400).json({ error: 'Invalid restaurant ID format' });
+      }
+    }
+
+    console.log('Fetching net profit stats for restaurantId:', restaurantId);
+
+    const { startDate, endDate } = req.query;
+
+    const matchQuery = {
+      restaurantId,
+      status: 'completed'
+    };
+
+    if (startDate || endDate) {
+      matchQuery.createdAt = {};
+      if (startDate) matchQuery.createdAt.$gte = new Date(startDate);
+      if (endDate) matchQuery.createdAt.$lte = new Date(endDate);
+    }
+
+    // First, let's get all bills and calculate net profit
+    const bills = await Bill.find(matchQuery).populate({
+      path: 'items.itemId',
+      model: 'MenuItem',
+      select: 'cost price name'
+    });
+
+    console.log('Found bills for net profit calculation:', bills.length);
+
+    let totalNetProfit = 0;
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalOrders = bills.length;
+    let totalItems = 0;
+
+    for (const bill of bills) {
+      let billCost = 0;
+      let billRevenue = 0;
+      let billItems = 0;
+
+      // Calculate cost and revenue for each item in the bill
+      for (const item of bill.items) {
+        const quantity = item.quantity || 1;
+        billItems += quantity;
+
+        // Get cost from populated menu item or item data
+        let cost = 0;
+        if (item.itemId && item.itemId.cost) {
+          cost = item.itemId.cost;
+        } else if (item.cost) {
+          cost = item.cost;
+        }
+
+        // Revenue is only from item prices (excluding additional charges)
+        billRevenue += (item.price || 0) * quantity;
+        billCost += cost * quantity;
+      }
+
+      const billNetProfit = billRevenue - billCost;
+
+      totalRevenue += billRevenue;
+      totalCost += billCost;
+      totalNetProfit += billNetProfit;
+      totalItems += billItems;
+
+      console.log(`Bill ${bill.billNumber}: Revenue: ${billRevenue}, Cost: ${billCost}, Net Profit: ${billNetProfit}`);
+    }
+
+    const averageNetProfit = totalOrders > 0 ? totalNetProfit / totalOrders : 0;
+
+    const result = {
+      totalNetProfit,
+      totalRevenue,
+      totalCost,
+      totalOrders,
+      averageNetProfit,
+      totalItems
+    };
+
+    console.log('Net profit stats result:', result);
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching net profit stats:', error);
+    res.status(500).json({ error: 'Failed to fetch net profit statistics' });
   }
 };
 

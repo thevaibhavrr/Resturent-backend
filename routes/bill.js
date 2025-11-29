@@ -12,6 +12,9 @@ router.get('/', verifyToken, billController.getBills);
 // Get bill statistics
 router.get('/stats', verifyToken, billController.getBillStats);
 
+// Get net profit statistics
+router.get('/net-profit-stats', verifyToken, billController.getNetProfitStats);
+
 // Get bill by ID
 router.get('/:id', verifyToken, billController.getBillById);
 
