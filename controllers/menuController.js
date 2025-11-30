@@ -43,7 +43,7 @@ const getCategories = async (req, res) => {
 // Create a new menu item
 const createMenuItem = async (req, res) => {
   try {
-    const { name, description, price, image, category, spiceLevel, restaurantId, isVeg, preparationTime } = req.body;
+    const { name, description, price, cost, image, category, spiceLevel, restaurantId, isVeg, preparationTime } = req.body;
 
     // Find category by name to get categoryId
     let categoryId = null;
@@ -72,6 +72,7 @@ const createMenuItem = async (req, res) => {
       name,
       description,
       price,
+      cost,
       image,
       category, // Keep legacy field for backward compatibility
       categoryId, // Set the proper reference
