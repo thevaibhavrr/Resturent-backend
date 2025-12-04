@@ -30,7 +30,7 @@ app.use('/uploads', express.static('uploads'));
 
 // routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/space', require('./routes/space'));
+app.use('/api/spaces', require('./routes/space'));
 app.use('/api/table', require('./routes/table'));
 app.use('/api/menu', require('./routes/menu'));
 app.use('/api/table-draft', require('./routes/tableDraft'));

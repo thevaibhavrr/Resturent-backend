@@ -20,6 +20,19 @@ exports.getTables = async (req, res) => {
   }
 };
 
+exports.getTableById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const table = await Table.findById(id).populate('locationId');
+    if (!table) {
+      return res.status(404).json({ error: 'Table not found' });
+    }
+    res.json(table);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 exports.updateTable = async (req, res) => {
   try {
     const { id } = req.params;

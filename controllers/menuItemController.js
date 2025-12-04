@@ -1,4 +1,32 @@
 const MenuItem = require('../models/MenuItem');
+const MenuItemPrice = require('../models/MenuItemPrice');
+const Space = require('../models/Space');
+
+// Helper function to get item with all space prices
+const getItemWithPrices = async (itemId) => {
+  const item = await MenuItem.findById(itemId).populate('categoryId');
+
+  if (!item) return null;
+
+  const prices = await MenuItemPrice.find({
+    menuItemId: itemId,
+    status: 'active'
+  }).populate('spaceId', 'name');
+
+  // Use basePrice if available, otherwise fall back to price (for existing items)
+  const effectivePrice = item.basePrice !== undefined ? item.basePrice : (item.price !== undefined ? item.price : 0);
+
+  return {
+    ...item.toObject(),
+    price: effectivePrice, // For backward compatibility
+    basePrice: effectivePrice, // For new functionality
+    spacePrices: prices.map(p => ({
+      spaceId: p.spaceId._id,
+      spaceName: p.spaceId.name,
+      price: p.price
+    }))
+  };
+};
 
 // Helper function to validate image URL
 const validateImageUrl = (url) => {
@@ -64,64 +92,126 @@ const validateImageUrl = (url) => {
   }
 };
 
-// Create new menu item
+// Create new menu item with space-specific prices
 exports.createItem = async (req, res) => {
+  const session = await MenuItem.startSession();
+  session.startTransaction();
+
   try {
     const { 
       name, 
       description, 
-      price,
+      price, // Legacy field
+      basePrice, // New field
       cost, 
-      categoryId, 
+      category, // Category name (string)
+      categoryId, // Direct categoryId (optional)
       restaurantId,
       image,
       isVeg,
-      preparationTime 
+      preparationTime,
+      spacePrices // Array of { spaceId, price }
     } = req.body;
+
+    // Find category by name to get categoryId if categoryId not provided
+    let finalCategoryId = categoryId;
+    if (!finalCategoryId && category) {
+      const MenuCategory = require('../models/MenuCategory');
+      const categoryDoc = await MenuCategory.findOne({
+        name: category, // Exact match including spaces
+        restaurantId,
+        status: 'active'
+      });
+      if (categoryDoc) {
+        finalCategoryId = categoryDoc._id;
+      }
+    }
+
+    // Handle backward compatibility: use basePrice if provided, otherwise use price
+    const finalBasePrice = basePrice !== undefined ? basePrice : (price !== undefined ? price : 0);
     
     // Validate image URL if provided
     if (image && !validateImageUrl(image)) {
+      await session.abortTransaction();
       return res.status(400).json({ 
         error: 'Invalid image URL. Please provide a valid image URL or upload an image file.' 
       });
     }
+
+    // Validate spacePrices if provided
+    if (spacePrices && Array.isArray(spacePrices)) {
+      for (const spacePrice of spacePrices) {
+        if (!spacePrice.spaceId || typeof spacePrice.price !== 'number' || spacePrice.price < 0) {
+          await session.abortTransaction();
+          return res.status(400).json({
+            error: 'Invalid space price data. Each space price must have spaceId and valid price.'
+          });
+        }
+      }
+    }
     
     // Find max display order within category and add 1
     const maxOrder = await MenuItem.findOne({ 
-      categoryId,
+      categoryId: finalCategoryId,
       restaurantId 
     })
     .sort('-displayOrder')
-    .select('displayOrder');
+    .select('displayOrder')
+    .session(session);
     
     const displayOrder = maxOrder ? maxOrder.displayOrder + 1 : 0;
     
-    const item = await MenuItem.create({ 
+    // Create menu item
+    const item = await MenuItem.create([{
       name,
       description,
-      cost: cost,
-      price,
-      categoryId,
+      price: finalBasePrice, // Keep for backward compatibility
+      basePrice: finalBasePrice,
+      cost,
+      category: category?.trim(), // Keep category name for backward compatibility
+      categoryId: finalCategoryId,
       restaurantId,
       image,
       isVeg,
       preparationTime,
       displayOrder
-    });
+    }], { session });
+
+    const createdItem = item[0];
+
+    // Create space-specific prices if provided
+    if (spacePrices && Array.isArray(spacePrices) && spacePrices.length > 0) {
+      const priceDocuments = spacePrices.map(spacePrice => ({
+        menuItemId: createdItem._id,
+        spaceId: spacePrice.spaceId,
+        price: spacePrice.price,
+        restaurantId
+      }));
+
+      await MenuItemPrice.insertMany(priceDocuments, { session });
+    }
     
     // Populate category details
-    await item.populate('categoryId');
+    await createdItem.populate('categoryId');
+
+    await session.commitTransaction();
+
+    // Get the item with prices for response
+    const itemWithPrices = await getItemWithPrices(createdItem._id);
     
-    res.status(201).json(item);
+    res.status(201).json(itemWithPrices);
   } catch (err) {
+    await session.abortTransaction();
     res.status(400).json({ error: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
-// Get all items for a restaurant
+// Get all items for a restaurant with space prices
 exports.getItems = async (req, res) => {
   try {
-    const { restaurantId, categoryId } = req.query;
+    const { restaurantId, categoryId, spaceId } = req.query;
     
     const query = { 
       restaurantId,
@@ -136,20 +226,50 @@ exports.getItems = async (req, res) => {
       .populate('categoryId')
       .sort('displayOrder');
       
-    res.json(items);
+    // Get space prices for all items
+    const itemIds = items.map(item => item._id);
+    const prices = await MenuItemPrice.find({
+      menuItemId: { $in: itemIds },
+      status: 'active',
+      ...(spaceId && { spaceId }) // Filter by specific space if requested
+    }).populate('spaceId', 'name');
+
+    // Attach prices to items
+    const itemsWithPrices = items.map(item => {
+      const itemPrices = prices.filter(p => p.menuItemId.toString() === item._id.toString());
+      // Use basePrice if available, otherwise fall back to price (for existing items)
+      const effectivePrice = item.basePrice !== undefined ? item.basePrice : (item.price !== undefined ? item.price : 0);
+
+      return {
+        ...item.toObject(),
+        price: effectivePrice, // For backward compatibility
+        basePrice: effectivePrice, // For new functionality
+        spacePrices: itemPrices.map(p => ({
+          spaceId: p.spaceId._id,
+          spaceName: p.spaceId.name,
+          price: p.price
+        }))
+      };
+    });
+
+    res.json(itemsWithPrices);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 };
 
-// Update menu item
+// Update menu item with space-specific prices
 exports.updateItem = async (req, res) => {
+  const session = await MenuItem.startSession();
+  session.startTransaction();
+
   try {
     const { id } = req.params;
-    const { image, ...updateData } = req.body;
+    const { image, spacePrices, category, ...updateData } = req.body;
     
     // Validate image URL if provided
     if (image && !validateImageUrl(image)) {
+      await session.abortTransaction();
       return res.status(400).json({ 
         error: 'Invalid image URL. Please provide a valid image URL or upload an image file.' 
       });
@@ -160,15 +280,80 @@ exports.updateItem = async (req, res) => {
       updateData.image = image;
     }
     
+    // Handle category lookup if category name provided
+    if (category && !updateData.categoryId) {
+      const MenuCategory = require('../models/MenuCategory');
+      const categoryDoc = await MenuCategory.findOne({
+        name: category, // Exact match
+        restaurantId: updateData.restaurantId,
+        status: 'active'
+      });
+      if (categoryDoc) {
+        updateData.categoryId = categoryDoc._id;
+        updateData.category = category; // Keep category name for backward compatibility
+      }
+    }
+
+    // Handle backward compatibility for price/basePrice fields
+    if (updateData.basePrice !== undefined) {
+      updateData.price = updateData.basePrice; // Keep both for compatibility
+    } else if (updateData.price !== undefined) {
+      updateData.basePrice = updateData.price; // Copy price to basePrice if only price provided
+    }
+
+    // Update the menu item
     const item = await MenuItem.findByIdAndUpdate(
       id, 
       updateData,
-      { new: true }
+      { new: true, session }
     ).populate('categoryId');
     
-    res.json(item);
+    if (!item) {
+      await session.abortTransaction();
+      return res.status(404).json({ error: 'Menu item not found' });
+    }
+
+    // Handle space-specific prices if provided
+    if (spacePrices !== undefined) {
+      // Validate spacePrices
+      if (Array.isArray(spacePrices)) {
+        for (const spacePrice of spacePrices) {
+          if (!spacePrice.spaceId || typeof spacePrice.price !== 'number' || spacePrice.price < 0) {
+            await session.abortTransaction();
+            return res.status(400).json({
+              error: 'Invalid space price data. Each space price must have spaceId and valid price.'
+            });
+          }
+        }
+      }
+
+      // Remove existing space prices for this item
+      await MenuItemPrice.deleteMany({ menuItemId: id }, { session });
+
+      // Create new space prices if provided
+      if (Array.isArray(spacePrices) && spacePrices.length > 0) {
+        const priceDocuments = spacePrices.map(spacePrice => ({
+          menuItemId: id,
+          spaceId: spacePrice.spaceId,
+          price: spacePrice.price,
+          restaurantId: item.restaurantId
+        }));
+
+        await MenuItemPrice.insertMany(priceDocuments, { session });
+      }
+    }
+
+    await session.commitTransaction();
+
+    // Get the updated item with prices for response
+    const itemWithPrices = await getItemWithPrices(id);
+
+    res.json(itemWithPrices);
   } catch (err) {
+    await session.abortTransaction();
     res.status(400).json({ error: err.message });
+  } finally {
+    session.endSession();
   }
 };
 
@@ -182,6 +367,35 @@ exports.deleteItem = async (req, res) => {
       { new: true }
     );
     res.json(item);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// Get space-specific prices for a menu item
+exports.getItemPrices = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const { spaceId } = req.query;
+
+    const query = {
+      menuItemId: itemId,
+      status: 'active'
+    };
+
+    if (spaceId) {
+      query.spaceId = spaceId;
+    }
+
+    const prices = await MenuItemPrice.find(query).populate('spaceId', 'name');
+
+    const formattedPrices = prices.map(price => ({
+      spaceId: price.spaceId._id,
+      spaceName: price.spaceId.name,
+      price: price.price
+    }));
+
+    res.json(formattedPrices);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

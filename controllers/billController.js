@@ -1,6 +1,46 @@
 const Bill = require('../models/Bill');
 const MenuItem = require('../models/MenuItem');
+const MenuItemPrice = require('../models/MenuItemPrice');
+const Table = require('../models/Table');
 const mongoose = require('mongoose');
+
+/**
+ * Get the correct price for a menu item based on space
+ * @param {string} itemId - Menu item ID
+ * @param {string} spaceId - Space ID
+ * @param {string} restaurantId - Restaurant ID
+ * @returns {Promise<number>} - The price for the item in the space
+ */
+const getItemPriceForSpace = async (itemId, spaceId, restaurantId) => {
+  try {
+    // First, try to find space-specific price
+    const spacePrice = await MenuItemPrice.findOne({
+      menuItemId: itemId,
+      spaceId: spaceId,
+      restaurantId: restaurantId,
+      status: 'active'
+    });
+
+    if (spacePrice) {
+      return spacePrice.price;
+    }
+
+    // If no space-specific price, use base price from MenuItem
+    const menuItem = await MenuItem.findOne({
+      _id: itemId,
+      restaurantId: restaurantId,
+      status: 'active'
+    });
+
+    if (!menuItem) return 0;
+
+    // Use basePrice if available, otherwise fall back to price (for existing items)
+    return menuItem.basePrice !== undefined ? menuItem.basePrice : (menuItem.price !== undefined ? menuItem.price : 0);
+  } catch (error) {
+    console.error('Error getting item price for space:', error);
+    return 0;
+  }
+}
 
 /**
  * Create a new bill
@@ -43,23 +83,61 @@ exports.createBill = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    // Get the space for this table to determine correct pricing
+    let spaceId = null;
+    try {
+      const table = await Table.findOne({
+        tableName: tableName,
+        restaurantId: restaurantId
+      }).populate('locationId');
+
+      if (table && table.locationId) {
+        spaceId = table.locationId._id;
+      }
+    } catch (error) {
+      console.warn('Could not determine space for table:', tableName, error);
+    }
+
+    // Calculate correct prices for each item based on space
+    const processedItems = await Promise.all(
+      items.map(async (item) => {
+        const itemId = item.id || item.itemId;
+
+        // Get the correct price for this item in this space
+        let correctPrice = item.price; // Default to provided price
+
+        if (spaceId && itemId) {
+          try {
+            correctPrice = await getItemPriceForSpace(itemId, spaceId, restaurantId);
+            if (correctPrice > 0) {
+              console.log(`Using space-specific price for item ${item.name}: ₹${correctPrice} (space: ${spaceId})`);
+            }
+          } catch (error) {
+            console.warn(`Could not get space-specific price for item ${itemId}, using provided price:`, error);
+          }
+        }
+
+        return {
+          itemId: itemId,
+          name: item.name,
+          price: correctPrice,
+          quantity: item.quantity,
+          note: item.note || '',
+          spiceLevel: item.spiceLevel || 0,
+          spicePercent: item.spicePercent || 0,
+          isJain: item.isJain || false,
+          discountAmount: item.discountAmount || 0 // Item-level discount in ₹
+        };
+      })
+    );
+
     const bill = new Bill({
       billNumber,
       tableId,
       tableName,
       restaurantId,
       persons: persons || 1,
-      items: items.map(item => ({
-        itemId: item.id || item.itemId,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        note: item.note || '',
-        spiceLevel: item.spiceLevel || 0,
-        spicePercent: item.spicePercent || 0,
-        isJain: item.isJain || false,
-        discountAmount: item.discountAmount || 0 // Item-level discount in ₹
-      })),
+      items: processedItems,
       subtotal: subtotal || 0,
       additionalCharges: additionalCharges || [],
       discountAmount: discountAmount || 0,
@@ -168,6 +246,21 @@ exports.getBills = async (req, res) => {
       bills.map(async (bill) => {
         const billObj = bill.toObject();
 
+        // Get space for this bill's table to calculate correct pricing
+        let spaceId = null;
+        try {
+          const table = await Table.findOne({
+            tableName: bill.tableName,
+            restaurantId: restaurantId
+          }).populate('locationId');
+
+          if (table && table.locationId) {
+            spaceId = table.locationId._id;
+          }
+        } catch (error) {
+          console.warn('Could not determine space for bill table:', bill.tableName, error);
+        }
+
         // Calculate cost and net profit for the bill
         let totalCost = 0;
         let itemRevenue = 0;
@@ -190,6 +283,10 @@ exports.getBills = async (req, res) => {
               item.cost = 0; // Default to 0 if cost not found
             }
 
+            // For reporting purposes, also store the actual price used in the bill
+            // This helps with reconciliation if space-specific pricing was used
+            item.actualPrice = item.price;
+
             // Item revenue (excluding additional charges)
             itemRevenue += (item.price || 0) * quantity;
 
@@ -207,6 +304,9 @@ exports.getBills = async (req, res) => {
         // Net profit = (item revenue - discounts) - cost
         const effectiveRevenue = itemRevenue - totalDiscount;
         billObj.netProfit = effectiveRevenue - totalCost;
+
+        // Add space information for reference
+        billObj.spaceId = spaceId;
 
         return billObj;
       })
@@ -568,4 +668,7 @@ exports.deleteBill = async (req, res) => {
     res.status(500).json({ error: 'Failed to delete bill' });
   }
 };
+
+// Export helper function for testing
+module.exports.getItemPriceForSpace = getItemPriceForSpace;
 

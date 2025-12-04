@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const MenuItemSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String },
-  price: { type: Number, required: true },
+  price: { type: Number }, // Legacy field - kept for backward compatibility
+  basePrice: { type: Number }, // New field for space-specific pricing (optional)
   cost: { type: Number ,  required: [true, 'Cost is required'] },
   image: { type: String },
   category: { type: String }, // Legacy field, kept for backward compatibility

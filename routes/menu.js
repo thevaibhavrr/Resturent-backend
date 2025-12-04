@@ -1,18 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const {
-  getMenuItems,
-  createMenuItem,
-  updateMenuItem,
-  deleteMenuItem
-} = require('../controllers/menuController');
+const menuItemController = require('../controllers/menuItemController');
 const menuCategoryController = require('../controllers/menuCategoryController');
 
 // Menu Items routes
-router.get('/items', getMenuItems);
-router.post('/items', createMenuItem);
-router.put('/items/:id', updateMenuItem);
-router.delete('/items/:id', deleteMenuItem);
+router.get('/items', menuItemController.getItems);
+router.post('/items', menuItemController.createItem);
+router.put('/items/:id', menuItemController.updateItem);
+router.delete('/items/:id', menuItemController.deleteItem);
+
+// Additional menu item routes for space prices
+router.get('/items/:itemId/prices', menuItemController.getItemPrices);
 
 // Categories routes - all using menuCategoryController
 router.get('/categories', menuCategoryController.getCategories);
