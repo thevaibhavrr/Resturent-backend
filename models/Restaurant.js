@@ -30,7 +30,14 @@ const RestaurantSchema = new mongoose.Schema({
   gstin: { type: String, default: '' },
   logo: { type: String, default: '' },
   qrCode: { type: String, default: '' }, // QR code image (base64 or URL)
-  description: { type: String, default: '' }
+  description: { type: String, default: '' },
+  bluetoothPrinter: {
+    name: { type: String, default: '' },
+    address: { type: String, default: '' },
+    enabled: { type: Boolean, default: false },
+    serviceUuid: { type: String, default: '0000ff00-0000-1000-8000-00805f9b34fb' },
+    characteristicUuid: { type: String, default: '0000ff02-0000-1000-8000-00805f9b34fb' }
+  }
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },

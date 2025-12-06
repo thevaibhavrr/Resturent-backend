@@ -30,7 +30,19 @@ const TableDraftSchema = new mongoose.Schema({
   total: { type: Number, default: 0 },
   status: { type: String, enum: ['draft', 'occupied', 'completed'], default: 'draft' },
   lastUpdated: { type: Date, default: Date.now },
-  updatedBy: { type: String, required: true } // username of who last updated
+  updatedBy: { type: String, required: true }, // username of who last updated
+  kotHistory: [{
+    kotId: { type: String, required: true },
+    items: [{
+      itemId: { type: String, required: true },
+      name: { type: String, required: true },
+      price: { type: Number, required: true },
+      quantity: { type: Number, required: true } // Can be positive (added) or negative (removed)
+    }],
+    timestamp: { type: Date, default: Date.now },
+    printed: { type: Boolean, default: false } // Track if this KOT has been printed
+  }],
+  printedKots: [{ type: String }] // Array of KOT IDs that have been printed
 }, { timestamps: true });
 
 // Create compound index for faster queries

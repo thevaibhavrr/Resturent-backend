@@ -36,7 +36,14 @@ exports.getSettings = async (req, res) => {
       gstin: restaurant.gstin || '',
       logo: restaurant.logo || '',
       qrCode: restaurant.qrCode || '',
-      description: restaurant.description || ''
+      description: restaurant.description || '',
+      bluetoothPrinter: restaurant.bluetoothPrinter || {
+        name: '',
+        address: '',
+        enabled: false,
+        serviceUuid: '0000ff00-0000-1000-8000-00805f9b34fb',
+        characteristicUuid: '0000ff02-0000-1000-8000-00805f9b34fb'
+      }
     });
   } catch (err) {
     console.error('Error fetching restaurant settings:', err);
@@ -46,7 +53,7 @@ exports.getSettings = async (req, res) => {
 
 /**
  * Update restaurant settings
- * @description Updates restaurant settings (name, address, phone, email, website, gstin, logo, description)
+ * @description Updates restaurant settings (name, address, phone, email, website, gstin, logo, description, bluetoothPrinter)
  * @param req - Express request object with restaurantId in params and settings in body
  * @param res - Express response object
  * @returns JSON response with success message and updated settings
@@ -54,7 +61,7 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const { name, address, phone, email, website, gstin, logo, qrCode, description } = req.body;
+    const { name, address, phone, email, website, gstin, logo, qrCode, description, bluetoothPrinter } = req.body;
 
     if (!restaurantId) {
       return res.status(400).json({ error: 'Restaurant ID is required' });
@@ -87,6 +94,7 @@ exports.updateSettings = async (req, res) => {
       hasLogo: logo !== undefined,
       hasQRCode: qrCode !== undefined,
       hasDescription: description !== undefined,
+      hasBluetoothPrinter: bluetoothPrinter !== undefined,
       logoLength: logo?.length || 0,
       qrCodeLength: qrCode?.length || 0
     });
@@ -106,6 +114,7 @@ exports.updateSettings = async (req, res) => {
       console.log('QR Code updated, length:', qrCode.length);
     }
     if (description !== undefined) restaurant.description = description;
+    if (bluetoothPrinter !== undefined) restaurant.bluetoothPrinter = bluetoothPrinter;
 
     await restaurant.save();
     console.log('Settings saved successfully. Logo saved:', !!restaurant.logo, 'QR Code saved:', !!restaurant.qrCode);
@@ -121,7 +130,8 @@ exports.updateSettings = async (req, res) => {
         gstin: restaurant.gstin,
         logo: restaurant.logo,
         qrCode: restaurant.qrCode,
-        description: restaurant.description
+        description: restaurant.description,
+        bluetoothPrinter: restaurant.bluetoothPrinter
       }
     });
   } catch (err) {

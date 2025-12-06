@@ -4,11 +4,18 @@ const TableDraft = require('../models/TableDraft');
 const saveTableDraft = async (req, res) => {
   const startTime = Date.now();
   try {
-    const { tableId, tableName, restaurantId, persons, cartItems, updatedBy, userId } = req.body;
-    
+    const { tableId, tableName, restaurantId, persons, cartItems, updatedBy, userId, kotHistory } = req.body;
+
     if (!tableId || !tableName || !restaurantId || !updatedBy || !userId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+
+    console.log("📥 Received draft save request:", {
+      tableId,
+      hasKotHistory: !!kotHistory,
+      kotHistoryLength: kotHistory?.length || 0,
+      cartItemsCount: cartItems?.length || 0
+    });
 
     // Process cart items to ensure they have the required staff information
     const processedCartItems = cartItems.map(item => {
@@ -52,7 +59,8 @@ const saveTableDraft = async (req, res) => {
       total,
       status,
       lastUpdated: new Date(),
-      updatedBy
+      updatedBy,
+      ...(kotHistory && { kotHistory }) // Include kotHistory if provided
     };
 
     // Use upsert for atomic operation - more efficient than separate find and update/insert
@@ -127,11 +135,49 @@ const deleteTableDraft = async (req, res) => {
   }
 };
 
+// Mark KOTs as printed
+const markKotsAsPrinted = async (req, res) => {
+  try {
+    const { tableId, restaurantId, kotIds } = req.body;
+
+    if (!tableId || !restaurantId || !Array.isArray(kotIds)) {
+      return res.status(400).json({ error: 'Missing required fields: tableId, restaurantId, kotIds array' });
+    }
+
+    console.log("🖨️ Marking KOTs as printed:", { tableId, restaurantId, kotIds });
+
+    // Update the draft to mark these KOTs as printed
+    const draft = await TableDraft.findOneAndUpdate(
+      { tableId, restaurantId },
+      {
+        $addToSet: { printedKots: { $each: kotIds } }, // Add to printedKots array if not already there
+        $set: {
+          'kotHistory.$[elem].printed': true // Mark as printed in kotHistory
+        }
+      },
+      {
+        arrayFilters: [{ 'elem.kotId': { $in: kotIds } }], // Only update matching KOTs
+        new: true
+      }
+    );
+
+    if (!draft) {
+      return res.status(404).json({ error: 'Table draft not found' });
+    }
+
+    console.log(`✅ Marked ${kotIds.length} KOTs as printed for table ${tableId}`);
+    res.json(draft);
+  } catch (error) {
+    console.error('Error marking KOTs as printed:', error);
+    res.status(500).json({ error: 'Failed to mark KOTs as printed' });
+  }
+};
+
 // Clear table draft (set to draft status with empty cart)
 const clearTableDraft = async (req, res) => {
   try {
     const { tableId, restaurantId, updatedBy } = req.body;
-    
+
     if (!tableId || !restaurantId || !updatedBy) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -146,7 +192,9 @@ const clearTableDraft = async (req, res) => {
       total: 0,
       status: 'draft',
       lastUpdated: new Date(),
-      updatedBy
+      updatedBy,
+      kotHistory: [], // Reset KOT history when clearing draft
+      printedKots: [] // Reset printed KOTs when clearing draft
     };
 
     // Use upsert for atomic operation
@@ -172,5 +220,6 @@ module.exports = {
   getTableDraft,
   getAllTableDrafts,
   deleteTableDraft,
-  clearTableDraft
+  clearTableDraft,
+  markKotsAsPrinted
 };
