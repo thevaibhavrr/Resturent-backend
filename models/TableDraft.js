@@ -37,7 +37,10 @@ const TableDraftSchema = new mongoose.Schema({
       itemId: { type: String, required: true },
       name: { type: String, required: true },
       price: { type: Number, required: true },
-      quantity: { type: Number, required: true } // Can be positive (added) or negative (removed)
+      quantity: { type: Number, required: true }, // Can be positive (added) or negative (removed)
+      spiceLevel: { type: Number, default: 0 },
+      spicePercent: { type: Number, default: 50 },
+      note: { type: String, default: '' }
     }],
     timestamp: { type: Date, default: Date.now },
     printed: { type: Boolean, default: false } // Track if this KOT has been printed
