@@ -27,17 +27,14 @@ const RestaurantSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   email: { type: String, default: '' },
   website: { type: String, default: '' },
+  FassaiNumber: { type: String, default: '' }, // FSSAI number
   gstin: { type: String, default: '' },
   logo: { type: String, default: '' },
   qrCode: { type: String, default: '' }, // QR code image (base64 or URL)
   description: { type: String, default: '' },
-  bluetoothPrinter: {
-    name: { type: String, default: '' },
-    address: { type: String, default: '' },
-    enabled: { type: Boolean, default: false },
-    serviceUuid: { type: String, default: '0000ff00-0000-1000-8000-00805f9b34fb' },
-    characteristicUuid: { type: String, default: '0000ff02-0000-1000-8000-00805f9b34fb' }
-  }
+  BillbluetoothPrinteraddress: { type: String, default: '' },
+  KOTbluetoothPrinteraddress: { type: String, default: '' },
+  
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },

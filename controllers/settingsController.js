@@ -37,13 +37,10 @@ exports.getSettings = async (req, res) => {
       logo: restaurant.logo || '',
       qrCode: restaurant.qrCode || '',
       description: restaurant.description || '',
-      bluetoothPrinter: restaurant.bluetoothPrinter || {
-        name: '',
-        address: '',
-        enabled: false,
-        serviceUuid: '0000ff00-0000-1000-8000-00805f9b34fb',
-        characteristicUuid: '0000ff02-0000-1000-8000-00805f9b34fb'
-      }
+      billPrinterAddress: restaurant.BillbluetoothPrinteraddress || '',
+      billPrinterEnabled: !!restaurant.BillbluetoothPrinteraddress,
+      kotPrinterAddress: restaurant.KOTbluetoothPrinteraddress || '',
+      kotPrinterEnabled: !!restaurant.KOTbluetoothPrinteraddress,
     });
   } catch (err) {
     console.error('Error fetching restaurant settings:', err);
@@ -61,7 +58,7 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const { name, address, phone, email, website, gstin, logo, qrCode, description, bluetoothPrinter } = req.body;
+    const { name, address, phone, email, website, gstin, logo, qrCode, description, billBluetoothPrinter, kotBluetoothPrinter } = req.body;
 
     if (!restaurantId) {
       return res.status(400).json({ error: 'Restaurant ID is required' });
@@ -94,7 +91,8 @@ exports.updateSettings = async (req, res) => {
       hasLogo: logo !== undefined,
       hasQRCode: qrCode !== undefined,
       hasDescription: description !== undefined,
-      hasBluetoothPrinter: bluetoothPrinter !== undefined,
+      hasBillBluetoothPrinter: billBluetoothPrinter !== undefined,
+      hasKotBluetoothPrinter: kotBluetoothPrinter !== undefined,
       logoLength: logo?.length || 0,
       qrCodeLength: qrCode?.length || 0
     });
@@ -114,7 +112,14 @@ exports.updateSettings = async (req, res) => {
       console.log('QR Code updated, length:', qrCode.length);
     }
     if (description !== undefined) restaurant.description = description;
-    if (bluetoothPrinter !== undefined) restaurant.bluetoothPrinter = bluetoothPrinter;
+    if (billBluetoothPrinter !== undefined && billBluetoothPrinter.address !== undefined) {
+      restaurant.BillbluetoothPrinteraddress = billBluetoothPrinter.address;
+      console.log('Bill Bluetooth Printer address updated:', billBluetoothPrinter.address);
+    }
+    if (kotBluetoothPrinter !== undefined && kotBluetoothPrinter.address !== undefined) {
+      restaurant.KOTbluetoothPrinteraddress = kotBluetoothPrinter.address;
+      console.log('KOT Bluetooth Printer address updated:', kotBluetoothPrinter.address);
+    }
 
     await restaurant.save();
     console.log('Settings saved successfully. Logo saved:', !!restaurant.logo, 'QR Code saved:', !!restaurant.qrCode);
@@ -131,7 +136,10 @@ exports.updateSettings = async (req, res) => {
         logo: restaurant.logo,
         qrCode: restaurant.qrCode,
         description: restaurant.description,
-        bluetoothPrinter: restaurant.bluetoothPrinter
+        billPrinterAddress: restaurant.BillbluetoothPrinteraddress,
+        billPrinterEnabled: !!restaurant.BillbluetoothPrinteraddress,
+        kotPrinterAddress: restaurant.KOTbluetoothPrinteraddress,
+        kotPrinterEnabled: !!restaurant.KOTbluetoothPrinteraddress
       }
     });
   } catch (err) {
