@@ -33,8 +33,9 @@ const RestaurantSchema = new mongoose.Schema({
   qrCode: { type: String, default: '' }, // QR code image (base64 or URL)
   description: { type: String, default: '' },
   BillbluetoothPrinteraddress: { type: String, default: '' },
+  Billprinterwidth: { type: Number, default: 2 },
   KOTbluetoothPrinteraddress: { type: String, default: '' },
-  
+  KOTprinterwidth: { type: Number, default: 2 },
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },

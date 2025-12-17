@@ -39,8 +39,10 @@ exports.getSettings = async (req, res) => {
       description: restaurant.description || '',
       billPrinterAddress: restaurant.BillbluetoothPrinteraddress || '',
       billPrinterEnabled: !!restaurant.BillbluetoothPrinteraddress,
+      billPrinterWidth: restaurant.Billprinterwidth ,
       kotPrinterAddress: restaurant.KOTbluetoothPrinteraddress || '',
-      kotPrinterEnabled: !!restaurant.KOTbluetoothPrinteraddress,
+      kotPrinterEnabled: restaurant?.KOTbluetoothPrinteraddress,
+      kotPrinterWidth: restaurant?.KOTprinterwidth ,
     });
   } catch (err) {
     console.error('Error fetching restaurant settings:', err);
@@ -58,7 +60,7 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const { name, address, phone, email, website, gstin, logo, qrCode, description, billBluetoothPrinter, kotBluetoothPrinter } = req.body;
+    const { name, address, phone, email, website, gstin, logo, qrCode, description, billBluetoothPrinter, kotBluetoothPrinter, billPrinterWidth, kotPrinterWidth } = req.body;
 
     if (!restaurantId) {
       return res.status(400).json({ error: 'Restaurant ID is required' });
@@ -120,6 +122,17 @@ exports.updateSettings = async (req, res) => {
       restaurant.KOTbluetoothPrinteraddress = kotBluetoothPrinter.address;
       console.log('KOT Bluetooth Printer address updated:', kotBluetoothPrinter.address);
     }
+    
+    // Update printer widths if provided
+    if (billPrinterWidth !== undefined) {
+      restaurant.Billprinterwidth = billPrinterWidth;
+      console.log('Bill printer width updated:', billPrinterWidth);
+    }
+    
+    if (kotPrinterWidth !== undefined) {
+      restaurant.KOTprinterwidth = kotPrinterWidth;
+      console.log('KOT printer width updated:', kotPrinterWidth);
+    }
 
     await restaurant.save();
     console.log('Settings saved successfully. Logo saved:', !!restaurant.logo, 'QR Code saved:', !!restaurant.qrCode);
@@ -138,8 +151,10 @@ exports.updateSettings = async (req, res) => {
         description: restaurant.description,
         billPrinterAddress: restaurant.BillbluetoothPrinteraddress,
         billPrinterEnabled: !!restaurant.BillbluetoothPrinteraddress,
+        billPrinterWidth: restaurant.Billprinterwidth,
         kotPrinterAddress: restaurant.KOTbluetoothPrinteraddress,
-        kotPrinterEnabled: !!restaurant.KOTbluetoothPrinteraddress
+        kotPrinterEnabled: !!restaurant.KOTbluetoothPrinteraddress,
+        kotPrinterWidth: restaurant.KOTprinterwidth
       }
     });
   } catch (err) {
