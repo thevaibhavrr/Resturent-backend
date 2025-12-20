@@ -268,19 +268,30 @@ exports.getBills = async (req, res) => {
 
         for (const item of billObj.items) {
           try {
-            // Find the menu item to get cost
-            const menuItem = await MenuItem.findOne({
-              _id: item.itemId,
-              restaurantId: restaurantId
-            });
-
             const quantity = item.quantity || 1;
 
-            if (menuItem && menuItem.cost) {
-              item.cost = menuItem.cost;
-              totalCost += menuItem.cost * quantity;
+            // Check if this is a manual/extra item
+            const isManualItem = !item.itemId || item.itemId === null || typeof item.itemId === 'string' && item.itemId.startsWith('manual-');
+
+            if (isManualItem) {
+              // For manual/extra items, cost is 0 (entire price is profit)
+              item.cost = 0;
+              console.log(`Manual item detected in bill ${billObj.billNumber}: ${item.name} (ID: ${item.itemId}) - treating as zero cost`);
             } else {
-              item.cost = 0; // Default to 0 if cost not found
+              // Find the menu item to get cost
+              const menuItem = await MenuItem.findOne({
+                _id: item.itemId,
+                restaurantId: restaurantId
+              });
+
+              if (menuItem && menuItem.cost) {
+                item.cost = menuItem.cost;
+                totalCost += menuItem.cost * quantity;
+                console.log(`Found cost for item ${item.name}: ${menuItem.cost}`);
+              } else {
+                item.cost = 0; // Default to 0 if cost not found
+                console.log(`No cost found for item ${item.name}, using 0`);
+              }
             }
 
             // For reporting purposes, also store the actual price used in the bill
@@ -433,11 +444,7 @@ exports.getNetProfitStats = async (req, res) => {
     }
 
     // First, let's get all bills and calculate net profit
-    const bills = await Bill.find(matchQuery).populate({
-      path: 'items.itemId',
-      model: 'MenuItem',
-      select: 'cost price name'
-    });
+    const bills = await Bill.find(matchQuery);
 
     console.log('Found bills for net profit calculation:', bills.length);
 
@@ -446,6 +453,8 @@ exports.getNetProfitStats = async (req, res) => {
     let totalCost = 0;
     let totalOrders = bills.length;
     let totalItems = 0;
+    let regularItems = 0;
+    let extraItems = 0;
 
     for (const bill of bills) {
       let billCost = 0;
@@ -453,17 +462,51 @@ exports.getNetProfitStats = async (req, res) => {
       let billItems = 0;
       let totalDiscount = 0;
 
+      console.log(`Processing bill ${bill.billNumber} with ${bill.items.length} items`);
+
       // Calculate cost and revenue for each item in the bill
       for (const item of bill.items) {
         const quantity = item.quantity || 1;
         billItems += quantity;
 
-        // Get cost from populated menu item or item data
+        console.log(`Processing item: ${item.name}, itemId: ${item.itemId}, type: ${typeof item.itemId}`);
+
+        // Check if this is a manual/extra item (doesn't have a corresponding MenuItem)
+        const isManualItem = !item.itemId || item.itemId === null || typeof item.itemId === 'string' && item.itemId.startsWith('manual-');
+
+        if (isManualItem) {
+          extraItems += quantity;
+        } else {
+          regularItems += quantity;
+        }
+
         let cost = 0;
-        if (item.itemId && item.itemId.cost) {
-          cost = item.itemId.cost;
-        } else if (item.cost) {
-          cost = item.cost;
+        if (isManualItem) {
+          // For manual/extra items, cost is 0 (entire price is profit)
+          cost = 0;
+          console.log(`Manual item detected: ${item.name} (ID: ${item.itemId}) - treating as zero cost`);
+        } else {
+          // Try to find the menu item to get cost
+          try {
+            const menuItem = await MenuItem.findOne({
+              _id: item.itemId,
+              restaurantId: restaurantId
+            });
+
+            if (menuItem && menuItem.cost) {
+              cost = menuItem.cost;
+              console.log(`Found menu item: ${item.name} - cost: ${cost}`);
+            } else if (item.cost) {
+              cost = item.cost;
+              console.log(`Using stored cost for item: ${item.name} - cost: ${cost}`);
+            } else {
+              console.log(`No cost found for item: ${item.name} - using 0`);
+            }
+          } catch (error) {
+            console.error(`Error fetching cost for item ${item.itemId}:`, error);
+            // Use stored cost if available, otherwise 0
+            cost = item.cost || 0;
+          }
         }
 
         // Revenue is only from item prices (excluding additional charges)
@@ -486,7 +529,7 @@ exports.getNetProfitStats = async (req, res) => {
       totalNetProfit += billNetProfit;
       totalItems += billItems;
 
-      console.log(`Bill ${bill.billNumber}: Revenue: ${billRevenue}, Cost: ${billCost}, Net Profit: ${billNetProfit}`);
+      console.log(`Bill ${bill.billNumber}: Revenue: ${billRevenue}, Cost: ${billCost}, Discount: ${totalDiscount}, Net Profit: ${billNetProfit}`);
     }
 
     const averageNetProfit = totalOrders > 0 ? totalNetProfit / totalOrders : 0;
@@ -497,10 +540,20 @@ exports.getNetProfitStats = async (req, res) => {
       totalCost,
       totalOrders,
       averageNetProfit,
-      totalItems
+      totalItems,
+      regularItems,
+      extraItems
     };
 
-    console.log('Net profit stats result:', result);
+    console.log('=== FINAL NET PROFIT STATS ===');
+    console.log('Total Revenue:', totalRevenue);
+    console.log('Total Cost:', totalCost);
+    console.log('Total Net Profit:', totalNetProfit);
+    console.log('Total Orders:', totalOrders);
+    console.log('Average Net Profit:', averageNetProfit);
+    console.log('Total Items:', totalItems);
+    console.log('=============================');
+
     res.json(result);
   } catch (error) {
     console.error('Error fetching net profit stats:', error);

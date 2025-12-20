@@ -133,20 +133,28 @@ const updateMenuItem = async (req, res) => {
   }
 };
 
-// Delete menu item
+// Delete menu item (soft delete - mark as inactive)
 const deleteMenuItem = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const menuItem = await MenuItem.findByIdAndDelete(id);
+    const menuItem = await MenuItem.findByIdAndUpdate(
+      id,
+      { status: 'inactive' },
+      { new: true }
+    );
+
     if (!menuItem) {
       return res.status(404).json({ error: 'Menu item not found' });
     }
 
-    res.json({ message: 'Menu item deleted successfully' });
+    res.json({
+      message: 'Menu item deactivated successfully',
+      item: menuItem
+    });
   } catch (error) {
-    console.error('Error deleting menu item:', error);
-    res.status(500).json({ error: 'Failed to delete menu item' });
+    console.error('Error deactivating menu item:', error);
+    res.status(500).json({ error: 'Failed to deactivate menu item' });
   }
 };
 

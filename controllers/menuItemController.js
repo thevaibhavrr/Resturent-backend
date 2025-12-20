@@ -211,13 +211,13 @@ exports.createItem = async (req, res) => {
 // Get all items for a restaurant with space prices
 exports.getItems = async (req, res) => {
   try {
-    const { restaurantId, categoryId, spaceId } = req.query;
-    
-    const query = { 
+    const { restaurantId, categoryId, spaceId, includeInactive } = req.query;
+
+    const query = {
       restaurantId,
-      status: 'active'
+      status: includeInactive === 'true' ? { $in: ['active', 'inactive'] } : 'active'
     };
-    
+
     if (categoryId) {
       query.categoryId = categoryId;
     }
@@ -366,6 +366,24 @@ exports.deleteItem = async (req, res) => {
       { status: 'inactive' },
       { new: true }
     );
+    res.json(item);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// Reactivate item (set status back to active)
+exports.reactivateItem = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const item = await MenuItem.findByIdAndUpdate(
+      id,
+      { status: 'active' },
+      { new: true }
+    ).populate('categoryId');
+    if (!item) {
+      return res.status(404).json({ error: 'Menu item not found' });
+    }
     res.json(item);
   } catch (err) {
     res.status(400).json({ error: err.message });

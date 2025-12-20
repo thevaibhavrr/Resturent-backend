@@ -36,6 +36,7 @@ const RestaurantSchema = new mongoose.Schema({
   Billprinterwidth: { type: Number, default: 2 },
   KOTbluetoothPrinteraddress: { type: String, default: '' },
   KOTprinterwidth: { type: Number, default: 2 },
+  removePassword: { type: String, default: '' },
 }, { 
   timestamps: true,
   toJSON: { virtuals: true },

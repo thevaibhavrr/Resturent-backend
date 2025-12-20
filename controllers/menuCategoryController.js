@@ -29,10 +29,10 @@ exports.createCategory = async (req, res) => {
 // Get all categories for a restaurant
 exports.getCategories = async (req, res) => {
   try {
-    const { restaurantId } = req.query;
-    const categories = await MenuCategory.find({ 
+    const { restaurantId, includeInactive } = req.query;
+    const categories = await MenuCategory.find({
       restaurantId,
-      status: 'active' 
+      status: includeInactive === 'true' ? { $in: ['active', 'inactive'] } : 'active'
     }).sort('displayOrder');
     res.json(categories);
   } catch (err) {
@@ -95,6 +95,24 @@ exports.deleteCategory = async (req, res) => {
       { status: 'inactive' },
       { new: true }
     );
+    res.json(category);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// Reactivate category (set status back to active)
+exports.reactivateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const category = await MenuCategory.findByIdAndUpdate(
+      id,
+      { status: 'active' },
+      { new: true }
+    );
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
     res.json(category);
   } catch (err) {
     res.status(400).json({ error: err.message });

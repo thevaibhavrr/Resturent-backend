@@ -43,6 +43,7 @@ exports.getSettings = async (req, res) => {
       kotPrinterAddress: restaurant.KOTbluetoothPrinteraddress || '',
       kotPrinterEnabled: restaurant?.KOTbluetoothPrinteraddress,
       kotPrinterWidth: restaurant?.KOTprinterwidth ,
+      removePassword: restaurant.removePassword || '',
     });
   } catch (err) {
     console.error('Error fetching restaurant settings:', err);
@@ -60,7 +61,7 @@ exports.getSettings = async (req, res) => {
 exports.updateSettings = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    const { name, address, phone, email, website, gstin, logo, qrCode, description, billBluetoothPrinter, kotBluetoothPrinter, billPrinterWidth, kotPrinterWidth } = req.body;
+    const { name, address, phone, email, website, gstin, logo, qrCode, description, billBluetoothPrinter, kotBluetoothPrinter, billPrinterWidth, kotPrinterWidth, removePassword } = req.body;
 
     if (!restaurantId) {
       return res.status(400).json({ error: 'Restaurant ID is required' });
@@ -95,6 +96,7 @@ exports.updateSettings = async (req, res) => {
       hasDescription: description !== undefined,
       hasBillBluetoothPrinter: billBluetoothPrinter !== undefined,
       hasKotBluetoothPrinter: kotBluetoothPrinter !== undefined,
+      hasRemovePassword: removePassword !== undefined,
       logoLength: logo?.length || 0,
       qrCodeLength: qrCode?.length || 0
     });
@@ -133,6 +135,11 @@ exports.updateSettings = async (req, res) => {
       restaurant.KOTprinterwidth = kotPrinterWidth;
       console.log('KOT printer width updated:', kotPrinterWidth);
     }
+    
+    if (removePassword !== undefined) {
+      restaurant.removePassword = removePassword;
+      console.log('Remove password updated');
+    }
 
     await restaurant.save();
     console.log('Settings saved successfully. Logo saved:', !!restaurant.logo, 'QR Code saved:', !!restaurant.qrCode);
@@ -154,7 +161,8 @@ exports.updateSettings = async (req, res) => {
         billPrinterWidth: restaurant.Billprinterwidth,
         kotPrinterAddress: restaurant.KOTbluetoothPrinteraddress,
         kotPrinterEnabled: !!restaurant.KOTbluetoothPrinteraddress,
-        kotPrinterWidth: restaurant.KOTprinterwidth
+        kotPrinterWidth: restaurant.KOTprinterwidth,
+        removePassword: restaurant.removePassword
       }
     });
   } catch (err) {
