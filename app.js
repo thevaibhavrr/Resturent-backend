@@ -41,6 +41,7 @@ app.use('/api/upload', require('./routes/upload'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/bills', require('./routes/bill'));
 app.use('/api/expenses', require('./routes/expense'));
+app.use('/api/extra-income', require('./routes/extraIncome'));
 
 // Health check endpoint
 app.get('/api/ping', (req, res) => {
