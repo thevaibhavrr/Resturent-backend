@@ -461,3 +461,41 @@ exports.getDashboardStats = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+// Get next KOT number for a restaurant (atomically increments counter)
+exports.getNextKotNumber = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    if (!restaurantId) {
+      return res.status(400).json({ error: 'Restaurant ID is required' });
+    }
+
+    // Atomically increment and get the next KOT number
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      restaurantId,
+      { $inc: { nextKotNumber: 1 } },
+      {
+        new: true, // Return updated document
+        runValidators: true
+      }
+    );
+
+    if (!restaurant) {
+      return res.status(404).json({ error: 'Restaurant not found' });
+    }
+
+    // Return the KOT number (which is now the incremented value)
+    const kotNumber = restaurant.nextKotNumber;
+
+    console.log(`Generated KOT number ${kotNumber} for restaurant ${restaurantId}`);
+
+    res.json({
+      kotNumber,
+      restaurantId
+    });
+  } catch (err) {
+    console.error('Error getting next KOT number:', err);
+    res.status(500).json({ error: 'Failed to generate KOT number' });
+  }
+};

@@ -15,6 +15,9 @@ router.post('/restaurants', superAdminController.createRestaurant);
 router.put('/restaurants/:id', superAdminController.updateRestaurant);
 router.delete('/restaurants/:id', superAdminController.deleteRestaurant);
 
+// KOT number generation
+router.get('/restaurants/:restaurantId/next-kot-number', superAdminController.getNextKotNumber);
+
 // Staff management
 router.get('/restaurants/:restaurantId/staff', superAdminController.getRestaurantStaff);
 

@@ -37,7 +37,8 @@ const RestaurantSchema = new mongoose.Schema({
   KOTbluetoothPrinteraddress: { type: String, default: '' },
   KOTprinterwidth: { type: Number, default: 2 },
   removePassword: { type: String, default: '' },
-}, { 
+  nextKotNumber: { type: Number, default: 10000 }, // Sequential KOT numbering starting from 10000
+}, {
   timestamps: true,
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
