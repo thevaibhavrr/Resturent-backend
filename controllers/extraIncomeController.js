@@ -13,7 +13,8 @@ exports.createExtraIncome = async (req, res) => {
             restaurantId,
             recordedBy,
             paymentReference,
-            receipt
+            receipt,
+            billImageUrl
         } = req.body;
 
         const extraIncome = new ExtraIncome({
@@ -26,7 +27,8 @@ exports.createExtraIncome = async (req, res) => {
             restaurantId,
             recordedBy,
             paymentReference: paymentReference || '',
-            receipt: receipt || ''
+            receipt: receipt || '',
+            billImageUrl: billImageUrl || ''
         });
 
         await extraIncome.save();
@@ -115,7 +117,8 @@ exports.updateExtraIncome = async (req, res) => {
             category,
             recordedBy,
             paymentReference,
-            receipt
+            receipt,
+            billImageUrl
         } = req.body;
 
         const updateData = {
@@ -128,6 +131,7 @@ exports.updateExtraIncome = async (req, res) => {
             recordedBy,
             paymentReference: paymentReference || '',
             receipt: receipt || '',
+            billImageUrl: billImageUrl || '',
             updatedAt: new Date()
         };
 

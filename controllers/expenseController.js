@@ -16,7 +16,8 @@ exports.createExpense = async (req, res) => {
             restaurantId,
             paymentMethod,
             shopName,
-            receipt
+            receipt,
+            billImageUrl
         } = req.body;
 
         // If staff ID is provided, verify it exists
@@ -39,7 +40,8 @@ exports.createExpense = async (req, res) => {
             restaurantId,
             paymentMethod: paymentMethod || 'cash',
             shopName: shopName || '',
-            receipt: receipt || ''
+            receipt: receipt || '',
+            billImageUrl: billImageUrl || ''
         });
 
         await expense.save();
@@ -133,7 +135,8 @@ exports.updateExpense = async (req, res) => {
             staff: staffId,
             paymentMethod,
             shopName,
-            receipt
+            receipt,
+            billImageUrl
         } = req.body;
 
         if (staffId) {
@@ -155,6 +158,7 @@ exports.updateExpense = async (req, res) => {
             paymentMethod: paymentMethod || 'cash',
             shopName: shopName || '',
             receipt: receipt || '',
+            billImageUrl: billImageUrl || '',
             updatedAt: new Date()
         };
 

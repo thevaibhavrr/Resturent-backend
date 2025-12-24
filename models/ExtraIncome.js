@@ -47,6 +47,10 @@ const extraIncomeSchema = new mongoose.Schema({
     receipt: {
         type: String, // URL or file path for receipt/proof
         default: ''
+    },
+    billImageUrl: {
+        type: String, // Cloudinary URL for bill image
+        default: ''
     }
 }, {
     timestamps: true
